@@ -70,6 +70,28 @@ app.get('/api/persons', (request, response) => {
   response.json(persons);
 });
 
+app.get('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id)
+  const person = persons.find(person => person.id === id)
+  if (person) {
+    response.json(person)
+  } else {
+    response.status(404).end()
+  }
+})
+
+app.delete('/api/persons/:id', (request, response) => {
+  const id = Number(request.params.id)
+  persons = persons.filter(person => person.id !== id)
+
+  response.status(204).end()
+})
+
+app.get('/api/info', (request, response) => {
+  const message = `<p>Phonebook has info for ${persons.length} people</p><p>${Date()}</p>`;
+  response.send(message);
+});
+
 app.delete('/api/notes/:id', (request, response) => {
   const id = Number(request.params.id)
   notes = notes.filter(note => note.id !== id)
@@ -77,12 +99,38 @@ app.delete('/api/notes/:id', (request, response) => {
   response.status(204).end()
 })
 
-const generateId = () => {
-  const maxId = notes.length > 0
-    ? Math.max(...notes.map(n => n.id))
+const generateId = (arr) => {
+  const maxId = arr.length > 0
+    ? Math.max(...arr.map(n => n.id))
     : 0
   return maxId + 1
 }
+
+app.post('/api/persons', (request, response) => {
+  const body = request.body
+
+  if (!body.name || !body.number) {
+    return response.status(400).json({ 
+      error: 'name or number missing' 
+    })
+  }
+
+  if(persons.find(person => person.name === body.name)){
+    return response.status(400).json({ 
+      error: 'name must be unique' 
+    })
+  }
+
+  const person = {
+    name: body.name,
+    number: body.number,
+    id: generateId(persons),
+  }
+
+  persons = persons.concat(person)
+
+  response.json(person)
+})
 
 app.post('/api/notes', (request, response) => {
   const body = request.body
@@ -97,7 +145,7 @@ app.post('/api/notes', (request, response) => {
     content: body.content,
     important: body.important || false,
     date: new Date(),
-    id: generateId(),
+    id: generateId(notes),
   }
 
   notes = notes.concat(note)
