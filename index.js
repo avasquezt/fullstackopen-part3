@@ -1,8 +1,22 @@
 const { response } = require('express');
 const express = require('express')
+const morgan = require('morgan');
 const app = express()
 
-app.use(express.json())
+app.use(express.json());
+
+app.use(morgan('tiny',{
+  skip: function (req, res) { return req.method === 'POST' }
+}));
+// app.use(morgan(':object'));
+
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :object', {
+  skip: function (req, res) { return req.method !== 'POST' }
+}));
+
+morgan.token('object', function(req, res){
+  return JSON.stringify(req.body);
+});
 
 let notes = [
     {
@@ -152,6 +166,12 @@ app.post('/api/notes', (request, response) => {
 
   response.json(note)
 })
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint);
 
 const PORT = 3001
 app.listen(PORT, () => {
